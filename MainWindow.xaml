@@ -1,0 +1,607 @@
+﻿<Window x:Class="DragDropTreeApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:DragDropTreeApp"
+        Title="Exam Mixer" Height="700" Width="1350" Background="#f4f8fd">
+    <Window.Resources>
+        <!-- Các converters -->
+        <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <local:NullToBrushConverter x:Key="NullToBrushConverter" />
+        <local:DifficultyLevelConverter x:Key="DifficultyLevelConverter"/>
+        <!-- Thêm một Converter để hiển thị/ẩn phần hướng dẫn giải -->
+        <local:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
+        <!-- Thêm vào phần Window.Resources trong file MainWindow.xaml -->
+        <DataTemplate x:Key="ImportedFromWordTemplate">
+            <Border BorderBrush="LightGray" BorderThickness="0,0,0,1" Margin="0,0,0,10" Padding="5">
+                <StackPanel>
+                    <!-- Tiêu đề câu hỏi -->
+                    <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" 
+                        TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                    <ItemsControl ItemsSource="{Binding RichContent}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ContentControl>
+                                    <ContentControl.Style>
+                                        <Style TargetType="ContentControl">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Type}" Value="text">
+                                                    <Setter Property="Content">
+                                                        <Setter.Value>
+                                                            <TextBlock Text="{Binding Text}" TextWrapping="Wrap"/>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Type}" Value="image">
+                                                    <Setter Property="Content">
+                                                        <Setter.Value>
+                                                            <Image Source="{Binding Image}" MaxHeight="300"/>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ContentControl.Style>
+                                </ContentControl>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Các lựa chọn -->
+                    <ItemsControl ItemsSource="{Binding Options}" Margin="0,5,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="10,2,0,2">
+                                    <TextBlock Text="{Binding Label}" FontWeight="Bold"/>
+                                    <ItemsControl ItemsSource="{Binding Content}" Margin="15,0,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <ContentControl Margin="0,2">
+                                                    <ContentControl.Style>
+                                                        <Style TargetType="{x:Type ContentControl}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Type}" Value="text">
+                                                                    <Setter Property="Content">
+                                                                        <Setter.Value>
+                                                                            <TextBlock Text="{Binding Text}" TextWrapping="Wrap"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Type}" Value="image">
+                                                                    <Setter Property="Content">
+                                                                        <Setter.Value>
+                                                                            <Image Source="{Binding Image}" 
+                                                                            MaxHeight="200" 
+                                                                            Stretch="Uniform" 
+                                                                            HorizontalAlignment="Left"
+                                                                            Margin="0,5"/>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ContentControl.Style>
+                                                </ContentControl>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Phần hướng dẫn giải -->
+                    <StackPanel Visibility="{Binding RichSolution.Count, Converter={StaticResource CountToVisibilityConverter}}">
+                        <TextBlock Text="Hướng dẫn giải" FontWeight="Bold" Margin="0,10,0,5"/>
+                        <ItemsControl ItemsSource="{Binding RichSolution}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <ContentControl Margin="0,2">
+                                        <ContentControl.Style>
+                                            <Style TargetType="{x:Type ContentControl}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Type}" Value="text">
+                                                        <Setter Property="Content">
+                                                            <Setter.Value>
+                                                                <TextBlock Text="{Binding Text}" TextWrapping="Wrap"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Type}" Value="image">
+                                                        <Setter Property="Content">
+                                                            <Setter.Value>
+                                                                <Image Source="{Binding Image}" 
+                                                                MaxHeight="300" 
+                                                                Stretch="Uniform" 
+                                                                HorizontalAlignment="Left"
+                                                                Margin="0,5"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ContentControl.Style>
+                                    </ContentControl>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        
+
+        <!-- Style cho các nút có hiệu ứng ripple -->
+        <Style x:Key="RippleButton" TargetType="{x:Type Button}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Grid>
+                            <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="3">
+                            </Border>
+                            <Border x:Name="ripple" 
+                                Background="#3FFFFFFF" 
+                                BorderThickness="0" 
+                                CornerRadius="3" 
+                                Opacity="0"/>
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
+                                          Margin="{TemplateBinding Padding}"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <EventTrigger RoutedEvent="PreviewMouseDown">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="ripple" 
+                                                     Storyboard.TargetProperty="Opacity" 
+                                                     From="0.7" To="0" Duration="0:0:0.5" />
+                                        <DoubleAnimation Storyboard.TargetName="border" 
+                                                     Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" 
+                                                     From="0.97" To="1" Duration="0:0:0.2">
+                                            <DoubleAnimation.EasingFunction>
+                                                <BackEase EasingMode="EaseOut" Amplitude="0.5" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="border" 
+                                                     Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" 
+                                                     From="0.97" To="1" Duration="0:0:0.2">
+                                            <DoubleAnimation.EasingFunction>
+                                                <BackEase EasingMode="EaseOut" Amplitude="0.5" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform />
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- RadioButton đẹp -->
+        <Style x:Key="NiceRadioButton" TargetType="RadioButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="RadioBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#b3b3b3"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10"
+                                Margin="6">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="Dot"
+                                         Width="22" Height="22"
+                                         Stroke="#607D8B"
+                                         StrokeThickness="2"
+                                         Fill="White"
+                                         Margin="0,0,12,0"/>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Dot" Property="Fill" Value="#2196F3"/>
+                                <Setter TargetName="Dot" Property="Stroke" Value="#1976D2"/>
+                                <Setter TargetName="RadioBorder" Property="Background" Value="#E3F2FD"/>
+                                <Setter TargetName="RadioBorder" Property="BorderBrush" Value="#2196F3"/>
+                                <Setter Property="Foreground" Value="#1976D2"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RadioBorder" Property="Background" Value="#f5faff"/>
+                                <Setter TargetName="RadioBorder" Property="BorderBrush" Value="#90caf9"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#222"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <!-- CheckBox đẹp cho câu đúng/sai -->
+        <Style x:Key="NiceCheckBox" TargetType="CheckBox">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Border x:Name="CheckBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#b3b3b3"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="10"
+                                Margin="4">
+                            <StackPanel Orientation="Horizontal">
+                                <Border x:Name="CheckMark"
+                                        Width="22" Height="22"
+                                        BorderBrush="#607D8B"
+                                        BorderThickness="2"
+                                        Background="White"
+                                        Margin="0,0,12,0" 
+                                        CornerRadius="4">
+                                    <Path x:Name="CheckIcon" 
+                                          Data="M3,7 L7,12 L15,5"
+                                          Stroke="#2196F3"
+                                          StrokeThickness="2"
+                                          Visibility="Collapsed" />
+                                </Border>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckMark" Property="Background" Value="#E3F2FD"/>
+                                <Setter TargetName="CheckMark" Property="BorderBrush" Value="#2196F3"/>
+                                <Setter TargetName="CheckIcon" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="CheckBorder" Property="Background" Value="#E3F2FD"/>
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="#2196F3"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CheckBorder" Property="Background" Value="#f5faff"/>
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="#90caf9"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#222"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <!-- Converter: ẩn Expander nếu không có Solution -->
+        <local:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+
+        <!-- Block Template -->
+        <HierarchicalDataTemplate DataType="{x:Type local:BlockViewModel}" ItemsSource="{Binding Children}">
+            <Grid>
+                <StackPanel Orientation="Horizontal" Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                    <Border Background="{Binding BlockColor}" CornerRadius="3" Padding="3" Margin="0,0,5,0">
+                        <TextBlock Text="{Binding Name}" FontWeight="Bold" />
+                    </Border>
+                    <TextBlock Text="{Binding BlockType}" />
+                    <Button Content="⚙" Width="24" Height="24" Margin="5,0,0,0" 
+                    Command="{Binding StartEditCommand}" 
+                    ToolTip="Đổi tên khối"/>
+                    <Button Content="🗑" Width="24" Height="24" Margin="5,0,0,0"
+                    Command="{Binding DeleteCommand}"
+                    ToolTip="Xóa khối"
+                    Foreground="Red"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" 
+                 Width="120" Height="24" Margin="0,0,5,0" 
+                 FontWeight="Bold" VerticalContentAlignment="Center"
+                 PreviewKeyDown="TextBox_PreviewKeyDown">
+                        <TextBox.InputBindings>
+                            <!-- Loại bỏ CommandParameter để tránh lỗi binding -->
+                            <KeyBinding Key="Enter" Command="{Binding KeyDownCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+                    <Button Content="✓" Width="24" Height="24" 
+                Command="{Binding EndEditCommand}" 
+                ToolTip="Lưu tên mới"/>
+                </StackPanel>
+            </Grid>
+        </HierarchicalDataTemplate>
+
+        <!-- Templates cho các loại câu hỏi -->
+
+        <!-- Template cho câu hỏi trắc nghiệm -->
+        <DataTemplate x:Key="MultipleChoiceTemplate">
+            <GroupBox Header="{Binding Title}" Margin="0,10" MaxWidth="500">
+                <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="8" Margin="2" MaxWidth="490">
+                    <StackPanel MaxWidth="480">
+                        <!-- HIỂN THỊ RICHCONTENT -->
+                        <ItemsControl ItemsSource="{Binding RichContent}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <ContentControl>
+                                        <ContentControl.Style>
+                                            <Style TargetType="ContentControl">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Type}" Value="text">
+                                                        <Setter Property="Content">
+                                                            <Setter.Value>
+                                                                <TextBlock Text="{Binding Text}" TextWrapping="Wrap"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Type}" Value="image">
+                                                        <Setter Property="Content">
+                                                            <Setter.Value>
+                                                                <Image Source="{Binding Image}" MaxHeight="300"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ContentControl.Style>
+                                    </ContentControl>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <!-- KẾT THÚC HIỂN THỊ RICHCONTENT -->
+
+                        <ItemsControl ItemsSource="{Binding Answers}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <RadioButton 
+                                Style="{StaticResource NiceRadioButton}" 
+                                Content="{Binding Text}" 
+                                GroupName="{Binding GroupName}" 
+                                IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <!-- Hướng dẫn giải -->
+                        <Expander Header="HƯỚNG DẪN GIẢI" IsExpanded="False" Margin="0,8,0,0" FontWeight="Bold"
+                          Visibility="{Binding Solution, Converter={StaticResource NullToVisibilityConverter}}">
+                            <TextBlock Text="{Binding Solution}" TextWrapping="Wrap"/>
+                        </Expander>
+                    </StackPanel>
+                </Border>
+            </GroupBox>
+        </DataTemplate>
+
+        <!-- Template cho câu hỏi đúng sai -->
+        <DataTemplate x:Key="TrueFalseTemplate">
+            <GroupBox Header="{Binding Title}" Margin="0,10" MaxWidth="500">
+                <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="8" Margin="2" MaxWidth="490">
+                    <StackPanel MaxWidth="480">
+                        <TextBlock Text="{Binding Content}" FontSize="10" Margin="0,0,0,10" TextWrapping="Wrap"/>
+                        <ItemsControl ItemsSource="{Binding Statements}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,5" MaxWidth="460">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0"
+                                          Style="{StaticResource NiceCheckBox}" 
+                                          Content="{Binding Text}" 
+                                          IsChecked="{Binding UserAnswer, Mode=TwoWay}"/>
+                                        <!-- ComboBox đã chỉnh ở trên -->
+                                        <ComboBox Grid.Column="1" 
+                                          Width="90" 
+                                          Margin="5,0,0,0"
+                                          SelectedValue="{Binding Difficulty, Mode=TwoWay}"
+                                          SelectedValuePath="Tag"
+                                          ToolTip="Độ khó">
+                                            <ComboBoxItem Content="" Tag="{x:Null}" />
+                                            <ComboBoxItem Content="Dễ" Tag="{x:Static local:DifficultyLevel.Easy}" />
+                                            <ComboBoxItem Content="TB"  Tag="{x:Static local:DifficultyLevel.Medium}" />
+                                            <ComboBoxItem Content="Khó" Tag="{x:Static local:DifficultyLevel.Hard}" />
+                                        </ComboBox>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Expander Header="HƯỚNG DẪN GIẢI" IsExpanded="False" Margin="0,8,0,0" FontWeight="Bold"
+                          Visibility="{Binding Solution, Converter={StaticResource NullToVisibilityConverter}}">
+                            <TextBlock Text="{Binding Solution}" TextWrapping="Wrap"/>
+                        </Expander>
+                    </StackPanel>
+                </Border>
+            </GroupBox>
+        </DataTemplate>
+
+        <!-- Template cho câu tự luận ngắn -->
+        <DataTemplate x:Key="ShortAnswerTemplate">
+            <GroupBox Header="{Binding Title}" Margin="0,10" MaxWidth="500">
+                <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="8" Margin="2" MaxWidth="490">
+                    <StackPanel MaxWidth="480">
+                        <TextBlock Text="{Binding Content}" FontSize="10" Margin="0,0,0,10" TextWrapping="Wrap"/>
+                        <Border BorderBrush="#90caf9" BorderThickness="1" CornerRadius="4" Background="White" MaxWidth="470">
+                            <TextBox Text="{Binding Solution, Mode=TwoWay}" 
+                         FontSize="10" Padding="10" MinHeight="40"
+                         Background="Transparent"
+                         BorderThickness="0"/>
+                        </Border>
+                        <!-- Hướng dẫn giải -->
+                        <Expander Header="HƯỚNG DẪN GIẢI" IsExpanded="False" Margin="0,8,0,0" FontWeight="Bold"
+                      Visibility="{Binding Solution, Converter={StaticResource NullToVisibilityConverter}}">
+                            <TextBlock Text="{Binding Solution}" TextWrapping="Wrap"/>
+                        </Expander>
+                    </StackPanel>
+                </Border>
+            </GroupBox>
+        </DataTemplate>
+
+        <!-- Template cho câu tự luận dài -->
+        <DataTemplate x:Key="EssayTemplate">
+            <GroupBox Header="{Binding Title}" Margin="0,10" MaxWidth="500">
+                <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="8" Margin="2" MaxWidth="490">
+                    <StackPanel MaxWidth="480">
+                        <TextBlock Text="{Binding Content}" FontSize="10" Margin="0,0,0,10" TextWrapping="Wrap"/>
+                        <Border BorderBrush="#90caf9" BorderThickness="1" CornerRadius="4" Background="White" MaxWidth="470">
+                            <TextBox Text="{Binding EssayAnswer, Mode=TwoWay}" 
+                         FontSize="10" Padding="10"
+                         MinHeight="120" MaxLength="{Binding EssayMaxLength}"
+                         TextWrapping="Wrap" AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"
+                         Background="Transparent"
+                         BorderThickness="0"/>
+                        </Border>
+                        <!-- Hướng dẫn giải -->
+                        <Expander Header="HƯỚNG DẪN GIẢI" IsExpanded="False" Margin="0,8,0,0" FontWeight="Bold"
+                      Visibility="{Binding Solution, Converter={StaticResource NullToVisibilityConverter}}">
+                            <TextBlock Text="{Binding Solution}" TextWrapping="Wrap"/>
+                        </Expander>
+                    </StackPanel>
+                </Border>
+            </GroupBox>
+        </DataTemplate>
+
+        <!-- Template Selector for Questions -->
+        <local:QuestionTemplateSelector x:Key="QuestionTemplateSelector"
+                                      MultipleChoiceTemplate="{StaticResource MultipleChoiceTemplate}"
+                                      TrueFalseTemplate="{StaticResource TrueFalseTemplate}"
+                                      ShortAnswerTemplate="{StaticResource ShortAnswerTemplate}"
+                                      EssayTemplate="{StaticResource EssayTemplate}" />
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Panel 1 - Danh sách câu hỏi (giữ nguyên) -->
+        <DockPanel Grid.Column="0" Margin="10">
+            <!-- Tiêu đề -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" DockPanel.Dock="Top" Margin="0,0,0,10">
+                <TextBlock Text="Panel 1"
+               FontWeight="Bold"
+               FontSize="18"
+               Margin="0,0,10,0"/>
+                <Button Content="Xóa toàn bộ"
+            Click="ClearPanel1_Click"
+            Margin="10,0,0,0"
+            Padding="10,3"
+            Background="#dc3545" Foreground="White"/>
+                <Button Content="Chọn file Word"
+            Click="ImportWord_Click"
+            Margin="10,0,0,0"
+            Padding="10,3"
+            Background="#1976d2" Foreground="White"/>
+            </StackPanel>
+            <!-- ListBox -->
+            <ListBox x:Name="ListBox1"
+                     ItemsSource="{Binding Questions1}"
+                     MaxWidth="520"
+                     ItemTemplateSelector="{StaticResource QuestionTemplateSelector}"
+                     AllowDrop="True"
+                     PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown"
+                     PreviewMouseWheel ="ListBox_PreviewMouseWheel"
+                     MouseMove="ListBox_MouseMove"
+                     DragOver="ListBox_DragOver"
+                     Drop="ListBox_Drop">
+            </ListBox>
+        </DockPanel>
+
+        <!-- Panel 2 (đã thay thế) - Câu hỏi trong khối -->
+        <DockPanel Grid.Column="1" Margin="10">
+            <!-- Tiêu đề Panel 2 -->
+            <TextBlock Text="Câu hỏi trong khối" FontWeight="Bold" FontSize="18" DockPanel.Dock="Top"/>
+
+            <!-- Hiển thị tên khối đang chọn hoặc thông báo -->
+            <Border DockPanel.Dock="Top" Margin="0,5,0,10" Padding="5" 
+            Background="{Binding BlocksManager.SelectedBlock, Converter={StaticResource NullToBrushConverter}}">
+                <TextBlock Text="{Binding BlocksManager.SelectedBlock.DisplayName, 
+                 FallbackValue='Chưa chọn khối nào. Vui lòng chọn một khối để thêm câu hỏi.'}"
+                 TextWrapping="Wrap" 
+                 FontStyle="Italic"/>
+            </Border>
+            <!-- ListBox câu hỏi trong khối -->
+            <ListBox x:Name="BlockQuestionsList" 
+                         ItemsSource="{Binding BlocksManager.SelectedBlock.Questions}"
+                         ItemTemplateSelector="{StaticResource QuestionTemplateSelector}"
+                         AllowDrop="True"
+                         PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown" 
+                         MouseMove="ListBox_MouseMove"
+                         DragOver="ListBox_DragOver"
+                        PreviewMouseWheel ="ListBox_PreviewMouseWheel"
+                         Drop="ListBox_Drop">
+            </ListBox>
+        </DockPanel>
+
+        <!-- Panel Phải (Quản lý khối) -->
+        <DockPanel Grid.Column="2" Margin="10">
+            <StackPanel DockPanel.Dock="Top">
+                <TextBlock Text="Quản lý khối" FontWeight="Bold" FontSize="18" Margin="0,0,0,10"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <Button Content="Tạo khối cố định" 
+                            Command="{Binding BlocksManager.AddFixedBlockCommand}" 
+                            Padding="10,5" Background="#ADD8E6" Margin="0,0,10,0"/>
+                    <Button Content="Tạo khối linh động" 
+                            Command="{Binding BlocksManager.AddDynamicBlockCommand}" 
+                            Padding="10,5" Background="#90EE90" Margin="0,0,10,0"/>
+                    <Button Content="Tạo khối mẫu" 
+                            Command="{Binding BlocksManager.CreateTemplateCommand}" 
+                            Margin="0,0,5,0"
+                            Padding="5"
+                            Background="LightGreen"/>
+                </StackPanel>
+
+                <!-- Thêm các nút chức năng -->
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
+                    <Button Content="Trộn đề thi" 
+                            Command="{Binding ShowExamMixerDialogCommand}"
+                            Padding="10,5" Background="#FF7F50" Foreground="White" Margin="0,0,10,0"/>
+                    <Button Content="Xuất Word" 
+                            Command="{Binding ExportExamsToWordCommand}"
+                            Padding="10,5" Background="#4CAF50" Foreground="White"/>
+                </StackPanel>
+                <TextBlock Text="* Khối cố định: Khi trộn đề, thứ tự câu hỏi giữ nguyên" FontStyle="Italic" Margin="0,0,0,5"/>
+                <TextBlock Text="* Khối linh động: Khi trộn đề, thứ tự câu hỏi có thể đảo" FontStyle="Italic" Margin="0,0,0,10"/>
+                <TextBlock Text="Khối được chọn:" FontWeight="Bold"/>
+                <TextBlock Text="{Binding BlocksManager.SelectedBlock.DisplayName}" 
+                           Margin="0,0,0,10"/>
+            </StackPanel>
+
+            <!-- Chỉ hiển thị cấu trúc khối (TreeView) -->
+            <GroupBox Header="Cấu trúc khối">
+                <TreeView Name="BlocksTreeView"
+                          ItemsSource="{Binding BlocksManager.RootBlocks}"
+                          SelectedItemChanged="BlocksTreeView_SelectedItemChanged"
+                          PreviewMouseLeftButtonDown="TreeView_PreviewMouseLeftButtonDown">
+                    <!-- Thêm ItemContainerStyle để ràng buộc IsExpanded -->
+                    <TreeView.ItemContainerStyle>
+                        <Style TargetType="TreeViewItem">
+                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                        </Style>
+                    </TreeView.ItemContainerStyle>
+                </TreeView>
+            </GroupBox>
+        </DockPanel>
+
+        <!-- Nút đóng ứng dụng ở góc trên cùng -->
+        <Button Content="CLose" 
+                Grid.Column="2"
+                HorizontalAlignment="Right" VerticalAlignment="Top" 
+                Width="50" Height="30" 
+                Margin="0,5,5,0" Padding="0"
+                Background="#dc3545" Foreground="White"
+                Click="CloseButton_Click"
+                ToolTip="Đóng chương trình"/>
+    </Grid>
+</Window>
